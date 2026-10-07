@@ -33,3 +33,7 @@ skills/
 
 # local git worktrees
 .worktrees/
+
+.vscode
+
+.bob/mcp.json
