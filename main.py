@@ -12,9 +12,9 @@ Each model lives in models/<name>/__init__.py and must expose:
 import argparse
 import importlib
 
-from parkinson.data import load_data
-from parkinson.evaluate import Experiment
-from parkinson.submission import make_submission
+from src.parkinson.data import load_data
+from src.parkinson.evaluate import Experiment
+from src.parkinson.submission import make_submission
 
 parser = argparse.ArgumentParser(description="Train and submit a model.")
 parser.add_argument("--model", required=True, help="Model folder name under models/")
