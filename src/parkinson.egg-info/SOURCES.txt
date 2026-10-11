@@ -8,5 +8,6 @@ src/parkinson/submission.py
 src/parkinson.egg-info/PKG-INFO
 src/parkinson.egg-info/SOURCES.txt
 src/parkinson.egg-info/dependency_links.txt
+src/parkinson.egg-info/requires.txt
 src/parkinson.egg-info/top_level.txt
 tests/test_setup.py

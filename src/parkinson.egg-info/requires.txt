@@ -1,0 +1,6 @@
+lightgbm==4.7.0
+optuna>=5.0.0
+polars>=2.0.0
+pyarrow>=26.0.0
+torch>=2.14.1
+xgboost==3.4.1

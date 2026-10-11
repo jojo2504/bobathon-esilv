@@ -4,8 +4,8 @@
 
 - **Project / dataset:** Parkinson's Disease True-OFF Score — synthetic multi-cohort visits
 - **Goal:** minimize RMSE for the true OFF MDS-UPDRS motor score, on patients held out from training
-- **Last experiment:** 12_full_ensemble (full-power LGBM + XGB + HGBR stacked) — done
-- **Last result:** RMSE **4.58** OOF grouped CV (stacked) — 72.2% below dummy floor
+- **Last experiment:** 18_blend (Transformer v4 OOF + GBM Ridge meta) — done
+- **Last result:** RMSE **3.88** OOF (Ridge meta: Transformer + LGBM + XGB + HGBR) — best submission: `submissions/18_meta.csv`
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2025-07-14
@@ -42,7 +42,10 @@
 | `09_lagged_target` | Within-patient autoregressive lag of target (corrected) | done | RMSE **8.02** OOF (autoregressive) — Hub leaky 2.11 confirms signal only exists with real targets; test patients fully held out, autoregression accumulates error — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48185) | [09_lagged_target.py](../experiments/09_lagged_target.py) |
 | `10_target_encoding` | LOO target encoding of patient_id, cohort/gene fallback for test | done | RMSE **10.48** OOF — test patients unseen so fallback to group means gives no gain over existing pat_mean_off feature — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48263) | [10_target_encoding.py](../experiments/10_target_encoding.py) |
 | `11_stacking` | Ridge meta on OOF from LGBM + XGB + HGBR + Ridge (800 trees) | done | RMSE **4.83** OOF stacked — marginal gain; weak base models (800 trees) limited ceiling — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48263) | [11_stacking.py](../experiments/11_stacking.py) |
-| `12_full_ensemble` | Full-power LGBM (3000) + XGB (2000) + HGBR (500) + Ridge meta + extra features — **new best** | done | RMSE **4.58** OOF (stacked) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48670) | [12_full_ensemble.py](../experiments/12_full_ensemble.py) |
+| `12_full_ensemble` | Full-power LGBM (3000) + XGB (2000) + HGBR (500) + Ridge meta + extra features | done | RMSE **4.58** OOF (stacked) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48670) | [12_full_ensemble.py](../experiments/12_full_ensemble.py) |
+| `17_transformer_v4` | Transformer (2-layer, 8-head, 47 feats/visit, ensemble=5, 50ep) — pipeline validation run | done | RMSE **3.94** OOF visit-level (patient-grouped CV) | [17_transformer_v4.py](../experiments/17_transformer_v4.py) |
+| `18_blend` | Ridge meta on [Transformer OOF, LGBM, XGB, HGBR] — **current best** | done | RMSE **3.88** OOF — `submissions/18_meta.csv` | [18_blend.py](../experiments/18_blend.py) |
+| `19_patient_mean_baseline` | Ridge on patient-level aggregates — ceiling check for linear models | done | RMSE **5.83** OOF — weaker than GBM, confirms non-linearity needed | [19_patient_mean_baseline.py](../experiments/19_patient_mean_baseline.py) |
 
 ## Backlog
 

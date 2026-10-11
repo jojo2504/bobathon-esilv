@@ -2,3 +2,9 @@ Metadata-Version: 2.4
 Name: parkinson
 Version: 0.1.0
 Requires-Python: >=3.12
+Requires-Dist: lightgbm==4.7.0
+Requires-Dist: optuna>=5.0.0
+Requires-Dist: polars>=2.0.0
+Requires-Dist: pyarrow>=26.0.0
+Requires-Dist: torch>=2.14.1
+Requires-Dist: xgboost==3.4.1
