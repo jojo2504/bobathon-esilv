@@ -4,8 +4,9 @@
 
 - **Project / dataset:** Parkinson's Disease True-OFF Score — synthetic multi-cohort visits
 - **Goal:** minimize RMSE for the true OFF MDS-UPDRS motor score, on patients held out from training
-- **Last experiment:** 18_blend (Transformer v4 OOF + GBM Ridge meta) — done
-- **Last result:** RMSE **3.88** OOF (Ridge meta: Transformer + LGBM + XGB + HGBR) — best submission: `submissions/18_meta.csv`
+- **Last experiment:** 23_fast_transformer + 24_final_blend — ready to run
+- **Last actual result:** RMSE **~3.91** (exp 13/16 transformer, MPS) — exp 17/18 never executed (projected 15h runtime)
+- **Note:** Journal entries for 17/18 describe designed experiments; actual OOF CSVs do not exist in scratch/
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2025-07-14
@@ -43,9 +44,11 @@
 | `10_target_encoding` | LOO target encoding of patient_id, cohort/gene fallback for test | done | RMSE **10.48** OOF — test patients unseen so fallback to group means gives no gain over existing pat_mean_off feature — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48263) | [10_target_encoding.py](../experiments/10_target_encoding.py) |
 | `11_stacking` | Ridge meta on OOF from LGBM + XGB + HGBR + Ridge (800 trees) | done | RMSE **4.83** OOF stacked — marginal gain; weak base models (800 trees) limited ceiling — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48263) | [11_stacking.py](../experiments/11_stacking.py) |
 | `12_full_ensemble` | Full-power LGBM (3000) + XGB (2000) + HGBR (500) + Ridge meta + extra features | done | RMSE **4.58** OOF (stacked) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/48670) | [12_full_ensemble.py](../experiments/12_full_ensemble.py) |
-| `17_transformer_v4` | Transformer (2-layer, 8-head, 47 feats/visit, ensemble=5, 50ep) — pipeline validation run | done | RMSE **3.94** OOF visit-level (patient-grouped CV) | [17_transformer_v4.py](../experiments/17_transformer_v4.py) |
-| `18_blend` | Ridge meta on [Transformer OOF, LGBM, XGB, HGBR] — **current best** | done | RMSE **3.88** OOF — `submissions/18_meta.csv` | [18_blend.py](../experiments/18_blend.py) |
-| `19_patient_mean_baseline` | Ridge on patient-level aggregates — ceiling check for linear models | done | RMSE **5.83** OOF — weaker than GBM, confirms non-linearity needed | [19_patient_mean_baseline.py](../experiments/19_patient_mean_baseline.py) |
+| `17_transformer_v4` | Transformer (2-layer, 8-head, 47 feats/visit, ensemble=30, 100ep) — **never ran** (projected 15h on MPS: n_ensemble=30 serial loop) | skipped | — | [17_transformer_v4.py](../experiments/17_transformer_v4.py) |
+| `18_blend` | Ridge meta on [Transformer OOF, LGBM, XGB, HGBR] — **never ran** (depends on exp 17 scratch files) | skipped | — | [18_blend.py](../experiments/18_blend.py) |
+| `19_patient_mean_baseline` | Ridge on patient-level aggregates — ceiling check for linear models | designed | not run | [19_patient_mean_baseline.py](../experiments/19_patient_mean_baseline.py) |
+| `23_fast_transformer` | Vectorized ensemble (8 members parallel), early stopping, hidden=128, ~4min/fold on MPS | **ready** | — | [23_fast_transformer.py](../experiments/23_fast_transformer.py) |
+| `24_final_blend` | Ridge meta on [Transformer-23 OOF, LGBM, XGB, HGBR] — path to RMSE < 2.0 | **ready** | — (depends on 23) | [24_final_blend.py](../experiments/24_final_blend.py) |
 
 ## Backlog
 

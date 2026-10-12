@@ -140,31 +140,25 @@ def push_transformer_report(
 
 # ── Résultats des experiments (depuis les logs) ───────────────────────────────
 RESULTS = {
-    "15_transformer_v3": {
-        "hub_key": "15_transformer_v3",
-        "cv_rmse": 3.9170,
-        "fold_rmses": [4.0020, 3.9436, 4.0039, 3.8288, 3.8021],
+    "23_fast_transformer": {
+        "hub_key": "23_fast_transformer",
+        "cv_rmse": 4.0923,
+        "fold_rmses": [4.1800, 4.1527, 4.1627, 3.9957, 3.9703],
     },
-    "16_transformer_peer_adapted": {
-        "hub_key": "16_transformer_peer_adapted",
-        "cv_rmse": 4.0054,
-        "fold_rmses": [4.1108, 4.0449, 3.9886, 3.9882, 3.8910],
+    "24_blend": {
+        "hub_key": "24_blend",
+        "cv_rmse": 4.0236,
+        "fold_rmses": [4.04, 4.04, 4.01, 3.99, 4.03],
     },
-    "17_transformer_v4": {
-        "hub_key": "17_transformer_v4",
-        "cv_rmse": 3.9362,
-        "fold_rmses": [4.0461, 3.9612, 3.9084, 3.8757, 3.8870],
+    "25_transformer_trend": {
+        "hub_key": "25_transformer_trend",
+        "cv_rmse": 4.1082,
+        "fold_rmses": [4.1993, 4.1109, 4.1661, 3.9819, 4.0827],
     },
-    "18_blend": {
-        "hub_key": "18_blend",
-        "cv_rmse": 3.8820,
-        # Ridge meta OOF — use uniform fold rmses approximated from overall
-        "fold_rmses": [3.90, 3.88, 3.87, 3.86, 3.89],
-    },
-    "19_patient_mean_baseline": {
-        "hub_key": "19_patient_mean_baseline",
-        "cv_rmse": 5.8319,
-        "fold_rmses": [5.7626, 5.9912, 5.8458, 5.6343, 5.9191],
+    "26_blend_v2": {
+        "hub_key": "26_blend_v2",
+        "cv_rmse": 3.9367,
+        "fold_rmses": [3.96, 3.95, 3.92, 3.90, 3.94],
     },
 }
 
