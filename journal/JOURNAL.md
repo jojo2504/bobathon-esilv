@@ -4,9 +4,9 @@
 
 - **Project / dataset:** Parkinson's Disease True-OFF Score — synthetic multi-cohort visits
 - **Goal:** minimize RMSE for the true OFF MDS-UPDRS motor score, on patients held out from training
-- **Last experiment:** 23_fast_transformer + 24_final_blend — ready to run
-- **Last actual result:** RMSE **~3.91** (exp 13/16 transformer, MPS) — exp 17/18 never executed (projected 15h runtime)
-- **Note:** Journal entries for 17/18 describe designed experiments; actual OOF CSVs do not exist in scratch/
+- **Last experiment:** 28_efficient_hybrid — ran, RMSE 4.62 LGBM alone / **3.90 triple blend** (T23+T25+LGBM28)
+- **Last actual result:** RMSE **3.90** (Ridge meta: T23 + T25 + LGBM28, exp 28)
+- **Note:** Best single model is transformer 23 (4.09). Best blend is T23+T25+LGBM28 at 3.90. Exp 27 two-level is worse than transformer (4.69). In-sample floor is 1.61 — gap is estimation error on per-patient trends.
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2025-07-14
@@ -47,8 +47,12 @@
 | `17_transformer_v4` | Transformer (2-layer, 8-head, 47 feats/visit, ensemble=30, 100ep) — **never ran** (projected 15h on MPS: n_ensemble=30 serial loop) | skipped | — | [17_transformer_v4.py](../experiments/17_transformer_v4.py) |
 | `18_blend` | Ridge meta on [Transformer OOF, LGBM, XGB, HGBR] — **never ran** (depends on exp 17 scratch files) | skipped | — | [18_blend.py](../experiments/18_blend.py) |
 | `19_patient_mean_baseline` | Ridge on patient-level aggregates — ceiling check for linear models | designed | not run | [19_patient_mean_baseline.py](../experiments/19_patient_mean_baseline.py) |
-| `23_fast_transformer` | Vectorized ensemble (8 members parallel), early stopping, hidden=128, ~4min/fold on MPS | **ready** | — | [23_fast_transformer.py](../experiments/23_fast_transformer.py) |
-| `24_final_blend` | Ridge meta on [Transformer-23 OOF, LGBM, XGB, HGBR] — path to RMSE < 2.0 | **ready** | — (depends on 23) | [24_final_blend.py](../experiments/24_final_blend.py) |
+| `23_fast_transformer` | Vectorized ensemble (8 members parallel), early stopping, hidden=128, ~4min/fold on MPS | done | RMSE **4.09** OOF (patient-level CV) — scratch/23_oof_visit.csv | [23_fast_transformer.py](../experiments/23_fast_transformer.py) |
+| `24_final_blend` | Ridge meta on [Transformer-23 OOF, LGBM, XGB, HGBR] — path to RMSE < 2.0 | skipped | — (exp 12 GBM used instead) | [24_final_blend.py](../experiments/24_final_blend.py) |
+| `25_transformer_trend` | Transformer with explicit trend features (pat_off_slope, pat_on_slope), 150 epochs, no inner-val split | done | RMSE **4.11** OOF — scratch/25_oof_visit.csv (not better than 23 despite bigger) | [25_transformer_trend.py](../experiments/25_transformer_trend.py) |
+| `26_blend_v2` | Ridge meta T25+LGBM+XGB+HGBR (full exp-12 features) | done | RMSE **~3.94** OOF (from run log) — submissions/26_final_blend_v2.csv | [26_blend_v2.py](../experiments/26_blend_v2.py) |
+| `27_two_level` | Two-level: Ridge L1 (pat aggregates → pat mean target) + LGBM L2 (visit residuals) | done | RMSE **4.69** OOF — WORSE than transformer 23; L1 alone gives 9.1 RMSE | [27_two_level.py](../experiments/27_two_level.py) |
+| `28_efficient_hybrid` | LGBM (exp-12 params + early stopping + rater-bias correction + polynomial features) blended with T23+T25 | done | LGBM alone **4.62**, Ridge meta T23+T25+LGBM28 **3.90** OOF — submissions/28_meta3.csv | [28_efficient_hybrid.py](../experiments/28_efficient_hybrid.py) |
 
 ## Backlog
 

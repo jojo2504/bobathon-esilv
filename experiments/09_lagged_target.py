@@ -18,9 +18,6 @@ import numpy as np
 import pandas as pd
 from sklearn.model_selection import GroupKFold
 import lightgbm as lgb
-from skore import evaluate
-
-from parkinson.hub import get_project
 
 # ── Load ──────────────────────────────────────────────────────────────────────
 print("Loading data...")
@@ -282,25 +279,14 @@ for fold_i, (train_idx, val_idx) in enumerate(cv_splits):
 rmse_09 = float(np.sqrt(np.mean((y - oof_preds) ** 2)))
 print(f"\n  09 OOF RMSE = {rmse_09:.4f}  (08_blend was 4.91)")
 
-# ── Push Hub report ───────────────────────────────────────────────────────────
-print("\n[Push] Hub report...")
+# ── Submission ────────────────────────────────────────────────────────────────
+print("\n[Submission] Building test predictions...")
+
 df_all_lag = compute_lag_features_train(df_base, y)
 drop_full = ["Index", "patient_id"]
 if "target" in df_all_lag.columns:
     drop_full.append("target")
 X_all = df_all_lag.drop(columns=drop_full, errors="ignore")
-
-lgbm_for_report = lgb.LGBMRegressor(**lgbm_params)
-rep_09 = evaluate(lgbm_for_report, X_all, y, splitter=cv_splits)
-print(f"  Hub report RMSE (reference, leaky full-data lag): {float(rep_09.metrics.rmse().iloc[:, 0].mean()):.4f}")
-print(f"  09 true OOF RMSE (autoregressive, no leakage): {rmse_09:.4f}")
-
-project = get_project()
-project.put("09_lagged_target", rep_09)
-print("  Pushed '09_lagged_target' → Hub")
-
-# ── Submission ────────────────────────────────────────────────────────────────
-print("\n[Submission] Building test predictions...")
 
 # Fit final model on all training data with exact lag features
 final_model = lgb.LGBMRegressor(**lgbm_params)
