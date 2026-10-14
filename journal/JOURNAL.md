@@ -4,9 +4,9 @@
 
 - **Project / dataset:** Parkinson's Disease True-OFF Score — synthetic multi-cohort visits
 - **Goal:** minimize RMSE for the true OFF MDS-UPDRS motor score, on patients held out from training
-- **Last experiment:** 28_efficient_hybrid — ran, RMSE 4.62 LGBM alone / **3.90 triple blend** (T23+T25+LGBM28)
-- **Last actual result:** RMSE **3.90** (Ridge meta: T23 + T25 + LGBM28, exp 28)
-- **Note:** Best single model is transformer 23 (4.09). Best blend is T23+T25+LGBM28 at 3.90. Exp 27 two-level is worse than transformer (4.69). In-sample floor is 1.61 — gap is estimation error on per-patient trends.
+- **Last experiment:** 33_generative_progression — new architecture from raw data: forward measurement calibration, visit-level LightGBMs and patient-curve LightGBMs; no neural networks (2026-10-14).
+- **Last actual result:** pooled patient-grouped OOF RMSE **3.35080**, an improvement of **5.57%** over experiment 32 (3.54836), with gains on all five folds. Full-data model and 11,013-row CSV saved.
+- **Note:** Experiment 33 uses experiment 32 only as a benchmark. Hyperparameters were selected with fold 1 as validation; the comparison is not nested CV. Earlier results below are historical; several referenced artifacts are absent from this checkout. See [33_generative_progression.md](33_generative_progression.md) for validation and model-selection details.
 
 - **Workspace decisions** (immutable unless the user pivots):
   - tabular library: pandas - recorded: 2025-07-14
@@ -30,6 +30,8 @@
 
 | Stem | Intent (one line) | Status | Headline result | Design note |
 |---|---|---|---|---|
+| `33_generative_progression` | Forward measurement calibration + visit and patient-curve LightGBMs, from raw data | done, published to Skore | **3.35080** pooled patient-grouped OOF RMSE; **5.57% better than 32** — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/87766); `submissions/33_generative_progression.csv` | [33_generative_progression.md](33_generative_progression.md) |
+| `32_final_trajectory` | Tree ensemble with fold-local motor correction and regularized patient trajectories; no neural network | done, published to Skore | **3.54836** pooled patient-grouped OOF RMSE — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/86150); `submissions/32_final_trajectory.csv` | [32_final_trajectory.md](32_final_trajectory.md) |
 | `01_dummy` | DummyRegressor(mean) — establish RMSE floor | done | RMSE 16.50 (row holdout 0.2) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/45526) | n/a |
 | `02_ridge` | Ridge + median imputer, row holdout, alpha scan | done | RMSE 10.49 (row holdout 0.2, alpha=0.1) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/estimators/45577) | [02_ridge.py](../experiments/02_ridge.py) |
 | `03_grouped_cv` | Honest eval: dummy vs Ridge on GroupKFold-5 | done | Ridge RMSE 10.60 / Dummy 16.50 (grouped CV) — [Hub](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/45588) | [03_grouped_cv.py](../experiments/03_grouped_cv.py) |
