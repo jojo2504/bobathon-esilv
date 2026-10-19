@@ -106,22 +106,21 @@ def to_num(df):
     return out
 
 
-# Hyperparamètres: plus de profondeur pour capturer la structure non-linéaire
-LGBM_P = dict(n_estimators=5000, num_leaves=511, learning_rate=0.008,
-              min_child_samples=10, colsample_bytree=0.8, subsample=0.8,
+# Hyperparamètres: num_leaves réduit pour finir en ~10 min sur CPU
+LGBM_P = dict(n_estimators=2000, num_leaves=255, learning_rate=0.02,
+              min_child_samples=15, colsample_bytree=0.8, subsample=0.8,
               subsample_freq=1, reg_alpha=0.01, reg_lambda=0.1, max_depth=-1,
               random_state=42, n_jobs=-1, verbose=-1)
-XGB_P  = dict(n_estimators=3000, max_depth=10, learning_rate=0.01,
-              subsample=0.8, colsample_bytree=0.8, reg_alpha=0.01, reg_lambda=0.1,
-              min_child_weight=5, random_state=42, n_jobs=-1, verbosity=0,
-              tree_method="hist")
 
+XGB_P = dict(n_estimators=1500, max_depth=8, learning_rate=0.02,
+             subsample=0.8, colsample_bytree=0.8, reg_alpha=0.01, reg_lambda=0.1,
+             random_state=42, n_jobs=-1, verbosity=0, tree_method="hist")
 
 N = len(y)
 oof_lgbm = np.zeros(N)
 oof_xgb  = np.zeros(N)
 
-print("\n[31] LGBM + XGB deep (pm_off × on focus)  GroupKFold-5")
+print("\n[31] LGBM + XGB (pm_off×on focus)  GroupKFold-5")
 for fi, (tr, vl) in enumerate(cv_splits):
     tr_vis = visits.iloc[tr]; vl_vis = visits.iloc[vl]
     X_tr = engineer(tr_vis)
@@ -145,12 +144,12 @@ rmse_lgbm = float(np.sqrt(np.mean((y-oof_lgbm)**2)))
 rmse_xgb  = float(np.sqrt(np.mean((y-oof_xgb)**2)))
 print(f"\n  OOF LGBM={rmse_lgbm:.4f}  XGB={rmse_xgb:.4f}")
 
-# Ridge meta GBM
+# Ridge GBM blend
 meta_gbm = Ridge(alpha=0.1)
 meta_gbm.fit(np.column_stack([oof_lgbm, oof_xgb]), y)
 oof_gbm = meta_gbm.predict(np.column_stack([oof_lgbm, oof_xgb]))
 rmse_gbm = float(np.sqrt(np.mean((y-oof_gbm)**2)))
-print(f"  Ridge meta GBM: {rmse_gbm:.4f}")
+print(f"  OOF Ridge GBM blend={rmse_gbm:.4f}")
 
 # Blend avec T23 + T25
 oof_23 = X_train_raw[["Index"]].merge(pd.read_csv("scratch/23_oof_visit.csv"),on="Index",how="left")["pred_23"].values
