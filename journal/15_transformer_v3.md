@@ -1,31 +1,27 @@
-# Experiment 15 — Transformer v3: camarade pipeline + régularisation forte
+# Experiment 15 — Transformer v3: teammate pipeline + stronger regularisation
 
 ## Question / hypothesis
 
-La data pipeline du camarade (Polars pur, null_value=0, tri par âge dans le group_by)
-combinée à une régularisation plus forte (dropout 0.3, weight_decay 0.1) peut-elle
-corriger l'overfitting visible dans exp 14 (train MSE ~9 vs val MSE ~15 à convergence)
-et passer sous RMSE 3.80 ?
+Can using the teammate's data pipeline (pure Polars, `null_value=0`, age-sorted visits in `group_by`) combined with stronger regularisation (dropout 0.3, weight_decay 0.1) fix the overfitting seen in exp 14 (train MSE ~9 vs val MSE ~15 at convergence) and push RMSE below 3.80?
 
 ## Motivation
 
-Exp 13 et 14 montrent un gap train/val croissant après epoch 40 :
-- Exp 14 fold 1 : train=8.5 vs val=16.2 à epoch 100 → gap ×1.9
-- L'early stopping arrête vers epoch 110 mais le meilleur val MSE est atteint vers epoch 40
+Experiments 13 and 14 show a growing train/val gap after epoch 40:
+- Exp 14 fold 1: train=8.5 vs val=16.2 at epoch 100 → gap ×1.9
+- Early stopping triggers around epoch 110 but the best val MSE is already reached around epoch 40
 
-La régularisation actuelle (dropout=0.1, weight_decay=1e-2) est insuffisante.
-Deux leviers :
+The current regularisation (dropout=0.1, weight_decay=1e-2) is not strong enough.
+Two levers to pull:
 1. **dropout_att=0.3, dropout_mlp=0.3** (×3 vs exp 13/14)
 2. **weight_decay=0.1** (×10 vs exp 13/14)
-3. **lr=5e-3** (plus agressif en début, le scheduler descend vite)
+3. **lr=5e-3** (more aggressive early, the scheduler drops it quickly)
 
-La pipeline Polars du camarade est plus propre :
-- `null_value=0` : les positions paddées = 0 après normalisation = moyenne, pas de
-  sentinelle à gérer dans le masque
-- Tri par âge intégré dans le group_by (via list.get avec index positionnel)
-- Flag columns réordonnées proprement par timestep
+The teammate's Polars pipeline is cleaner:
+- `null_value=0`: padded positions = 0 after normalisation = the mean, no sentinel to handle in the attention mask
+- Age sort built into the `group_by` (via `list.get` with positional index)
+- Flag columns cleanly reordered by timestep
 
-**IMPORTANT** : on garde GroupKFold sur patient_id (son KFold simple est leaky).
+**IMPORTANT**: we keep GroupKFold on patient_id — the teammate's plain KFold leaks patients.
 
 ## Status
 
@@ -34,4 +30,4 @@ La pipeline Polars du camarade est plus propre :
 - **Headline result**: —
 - **Implication for next iteration**: —
 
-**Sourcing strategy**: `user` (code camarade adapté)
+**Sourcing strategy**: `user` (adapted from teammate's code)

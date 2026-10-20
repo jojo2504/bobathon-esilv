@@ -1,136 +1,85 @@
-# Expérience 33 — Calibration des mesures et progression par patient
+# Experiment 33 — Measurement calibration and patient progression
 
-## Nouvelle approche
+## New approach
 
-Cette expérience repart des CSV bruts. Elle n'importe pas le modèle 32 et
-n'utilise aucune de ses prédictions comme variable ou composante d'ensemble.
-Ses prédictions OOF servent uniquement à comparer les performances.
+This experiment starts fresh from the raw CSVs. It does not import model 32 and does not use any of its predictions as an input or ensemble component. Model 32's predictions are only used as a benchmark to compare performance.
 
-L'analyse des données d'entraînement met en évidence trois signaux :
+Looking at the training data reveals three clear signals:
 
-- L'écart entre le score observé et la cible varie avec l'évaluateur et le
-  délai depuis la prise du traitement.
-- Les mesures ON et la LEDD sont presque toujours absentes aux faibles
-  valeurs de la cible. Le début et la fin des observations apportent donc
-  de l'information sur la trajectoire.
-- Les visites d'un patient décrivent une évolution assez régulière pour
-  apprendre conjointement son niveau, sa pente et sa courbure.
+- The gap between the observed score and the target changes depending on the rater and the time since the last dose.
+- ON measurements and LEDD are almost always missing when the target is low. The start and end of a patient's observations therefore carry information about their trajectory.
+- A patient's visits follow a progression that is regular enough to jointly learn their level, slope, and curvature.
 
 ## Architecture
 
-1. **Modèle de mesure direct.** Pour ON et OFF séparément, une régression Ridge
-   apprend `score_observé = cible × facteur(contexte) + décalage(contexte)`.
-   Le contexte comprend des splines du délai, l'évaluateur, la dose,
-   la cohorte et les indicateurs de valeurs manquantes. Une pondération
-   en fonction de la cible réduit la domination des scores élevés.
-2. **Inversion et trajectoire initiale.** Inverser cette relation donne une
-   estimation de sévérité depuis chaque mesure disponible. Les observations
-   ON/OFF sont combinées dans une courbe quadratique régularisée, avec des
-   poids calculés depuis le facteur de calibration et le bruit estimé.
-3. **Représentation des visites.** Construire 228 variables : données de la
-   visite, agrégats, courbes, moyennes locales à trois échelles temporelles,
-   premières et dernières observations, et toutes les mesures ordonnées
-   du patient, jusqu'à 12 visites comme dans ce jeu de données.
-4. **Apprentissage par visite.** Deux LightGBM corrigent les erreurs de la
-   trajectoire initiale. Leurs prédictions sont lissées par patient.
-5. **Apprentissage par patient.** Trois autres LightGBM prédisent les
-   coefficients de correction de la courbe : niveau, pente et courbure.
-   Ces coefficients sont définis sur une base temporelle orthogonale.
-6. **Ensemble final.** Combiner 35 % du premier modèle par visite,
-   35 % du second et 30 % du modèle par patient. Borner le score à `[0, 132]`.
+1. **Direct measurement model.** For ON and OFF separately, a Ridge regression learns `observed_score = target × scale(context) + offset(context)`. Context includes splines of the time delay, the rater, the dose, the cohort, and missingness indicators. Sample weights based on the target reduce the influence of high scores.
+2. **Inversion and initial trajectory.** Inverting this relationship gives a severity estimate from each available measurement. ON and OFF observations are combined into a regularised quadratic curve, with weights based on the calibration scale factor and estimated noise.
+3. **Visit features.** Build 228 features: visit data, aggregates, curve values, local means at three time scales, first and last observations, and all of the patient's measurements in order, up to 12 visits as in this dataset.
+4. **Visit-level learning.** Two LightGBMs correct the errors of the initial trajectory. Their predictions are smoothed within each patient.
+5. **Patient-level learning.** Three more LightGBMs predict correction coefficients for the curve: level, slope, and curvature. These coefficients are defined on an orthogonal time basis.
+6. **Final ensemble.** Combine 35% of the first visit model, 35% of the second, and 30% of the patient model. Clip the score to `[0, 132]`.
 
-La calibration et tous les modèles supervisés sont réentraînés dans chaque
-fold. Les transformations des patients de validation utilisent seulement
-leurs observations X et les paramètres appris sur les patients train.
-Les modèles finaux sont des Ridge et des LightGBM, sans réseau de neurones.
+Calibration and all supervised models are retrained within each fold. Validation patients' transformations use only their X observations and the parameters learned from training patients. All models are Ridge and LightGBM — no neural networks.
 
-## Choix des modèles
+## Model selection
 
-Les essais utilisent exclusivement le premier fold de `GroupKFold(5)` :
+Exploration uses only the first fold of `GroupKFold(5)`:
 
-| Candidat | RMSE sur le fold d'exploration |
+| Candidate | RMSE on the exploration fold |
 |---|---|
-| Modèle 32, référence | 3.56730 |
-| LightGBM 31 feuilles, 2 600 arbres | 3.41357 |
-| LightGBM 63 feuilles, 2 600 arbres | 3.41796 |
-| XGBoost profondeur 5, 2 600 arbres | 3.44401 |
-| LightGBM 15 feuilles, entraînement prolongé | 3.40006 |
-| LightGBM 31 feuilles, entraînement prolongé | 3.39618 |
-| Modèle de coefficients par patient | 3.52569 |
-| **Ensemble retenu 35 / 35 / 30** | **3.35755** |
+| Model 32, reference | 3.56730 |
+| LightGBM 31 leaves, 2,600 trees | 3.41357 |
+| LightGBM 63 leaves, 2,600 trees | 3.41796 |
+| XGBoost depth 5, 2,600 trees | 3.44401 |
+| LightGBM 15 leaves, extended training | 3.40006 |
+| LightGBM 31 leaves, extended training | 3.39618 |
+| Patient coefficient model | 3.52569 |
+| **Chosen ensemble 35 / 35 / 30** | **3.35755** |
 
-Le modèle par patient est moins performant seul, mais ses erreurs sont
-complémentaires de celles des modèles par visite. XGBoost n'est pas retenu
-dans l'ensemble final.
+The patient model performs worse on its own but its errors are complementary to the visit models. XGBoost is not included in the final ensemble.
 
-Les hyperparamètres et les poids sont figés avant la validation sur les
-quatre autres folds. Le premier fold a participé à la sélection ; son score
-est donc optimiste. La comparaison sur les folds 2 à 5 constitue la
-vérification sur d'autres groupes de validation. Cette procédure n'est pas
-une validation croisée imbriquée : les patients de ces groupes ont aussi
-participé à l'entraînement des modèles exploratoires. Il n'existe pas ici
-de jeu de test étiqueté totalement indépendant de la recherche de modèle.
+Hyperparameters and weights are fixed before validating on the other four folds. Fold 1 took part in selection, so its score is optimistic. Folds 2 to 5 provide a check on unseen patient groups. This is not nested cross-validation: patients in those groups also appeared in training during the exploratory model search. There is no fully held-out labelled test set here that is independent of model search.
 
-Les visites sont remises dans un ordre canonique avant l'inférence pour
-stabiliser les réductions numériques des variables patient. Un contrôle
-vérifie que permuter les lignes d'entrée conserve les mêmes prédictions.
+Visits are reordered canonically before inference to stabilise the numerical reductions of patient features. A check verifies that permuting the input rows gives the same predictions.
 
-## Hyperparamètres retenus
+## Chosen hyperparameters
 
-| Composante | Arbres | Feuilles | Learning rate | L2 |
+| Component | Trees | Leaves | Learning rate | L2 |
 |---|---|---|---|---|
-| LightGBM par visite A | 6 499 | 15 | 0.025 | 8 |
-| LightGBM par visite B | 6 497 | 31 | 0.025 | 8 |
-| LightGBM patient : niveau | 2 998 | 15 | 0.02 | 10 |
-| LightGBM patient : pente | 2 333 | 15 | 0.02 | 10 |
-| LightGBM patient : courbure | 2 067 | 15 | 0.02 | 10 |
+| LightGBM visit A | 6,499 | 15 | 0.025 | 8 |
+| LightGBM visit B | 6,497 | 31 | 0.025 | 8 |
+| LightGBM patient: level | 2,998 | 15 | 0.02 | 10 |
+| LightGBM patient: slope | 2,333 | 15 | 0.02 | 10 |
+| LightGBM patient: curvature | 2,067 | 15 | 0.02 | 10 |
 
-Les nombres d'arbres proviennent des essais avec arrêt anticipé sur le
-fold d'exploration. La validation complète utilise ces nombres fixes,
-sans consulter les labels des autres folds pour arrêter l'entraînement.
+Tree counts come from early-stopping runs on the exploration fold. The full validation uses these fixed counts without consulting the labels of other folds to stop training.
 
-## Résultats de validation complète
+## Full validation results
 
-| Fold | Modèle 32 | Modèle 33 |
+| Fold | Model 32 | Model 33 |
 |---|---|---|
-| 1 — utilisé pour l'exploration | 3.56730 | 3.35490 |
+| 1 — used for exploration | 3.56730 | 3.35490 |
 | 2 | 3.59380 | 3.33285 |
 | 3 | 3.46349 | 3.38568 |
 | 4 | 3.47063 | 3.33698 |
 | 5 | 3.64308 | 3.34332 |
-| **RMSE OOF global** | **3.54836** | **3.35080** |
+| **Overall pooled OOF RMSE** | **3.54836** | **3.35080** |
 
-Le gain est positif sur les cinq folds : **5.57 % de réduction du RMSE**
-global. Sur les folds 2 à 5 seuls, le RMSE passe de 3.54361 à environ 3.34977.
-Un bootstrap apparié par patient, avec 2 000 rééchantillonnages sur ces
-quatre folds, donne un intervalle à 95 % du gain absolu de RMSE de
-**[0.137 ; 0.250]**. Cet intervalle est conditionnel au modèle retenu et ne
-mesure pas l'incertitude liée à toute la recherche d'hyperparamètres.
+The gain is positive on all five folds: **5.57% reduction in overall RMSE**. On folds 2 to 5 only, RMSE goes from 3.54361 to approximately 3.34977. A paired bootstrap with 2,000 resamples on those four folds gives a 95% confidence interval for the absolute RMSE gain of **[0.137, 0.250]**. This interval is conditional on the chosen model and does not account for the uncertainty introduced by the full hyperparameter search.
 
-Les contrôles d'inférence vérifient que le réordonnancement des lignes
-et le traitement séparé de patients complets conservent les prédictions.
+Inference checks verify that row reordering and processing complete patients separately preserve the predictions.
 
-Le modèle final a été entraîné sur 44 590 visites. Les 11 013 prédictions
-du CSV ont été contrôlées : format, indices uniques, ordre attendu,
-valeurs finies et scores dans `[0, 132]`.
+The final model was trained on 44,590 visits. The 11,013 predictions in the CSV were checked: format, unique indices, expected order, finite values, and scores in `[0, 132]`.
 
-**Publication Skore confirmée :** [33_generative_progression](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/87766).
+**Skore publication confirmed:** [33_generative_progression](https://skore.probabl.ai/degensunite/bobathon-esilv/cross-validations/87766).
 
-## Reproduction et artefacts
+## How to reproduce
 
 ```sh
 .venv/bin/python -u experiments/33_generative_progression.py
 .venv/bin/python -u experiments/33_generative_progression.py --push
 ```
 
-Le script conserve le rapport Skore, le modèle final, les prédictions OOF
-et les métriques sous le préfixe `scratch/33_generative_progression`.
-Le CSV final est `submissions/33_generative_progression.csv`.
-Les modèles intermédiaires sont mis en cache selon les données du fold
-et la graine. Après modification de l'algorithme, changer la version du cache
-et déplacer les anciens artefacts avant de relancer.
+The script saves the Skore report, the final model, the OOF predictions, and the metrics under the prefix `scratch/33_generative_progression`. The final CSV is `submissions/33_generative_progression.csv`. Intermediate models are cached based on fold data and seed. After changing the algorithm, update the cache version and move any old artefacts before re-running.
 
-Le protocole suppose que les visites disponibles d'un patient sont fournies
-ensemble, y compris celles situées plus tard dans sa trajectoire. Il
-correspond au challenge et ne mesure pas une prévision limitée au passé.
-La publication demandée est sur Skore.
+The protocol assumes that all available visits for a patient are provided together, including visits later in their trajectory. This matches the competition setup and does not measure a strictly past-only forecast. The required publication is on Skore.
